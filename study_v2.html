@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>勉強管理アプリ</title>
+
+<style>
+
+body{
+    font-family:sans-serif;
+    background:#f5f7ff;
+    text-align:center;
+    padding:20px;
+}
+
+h1{
+    color:#4a6cf7;
+}
+
+.box{
+    background:white;
+    width:85%;
+    margin:15px auto;
+    padding:15px;
+    border-radius:12px;
+    box-shadow:0 2px 5px rgba(0,0,0,0.1);
+}
+
+.subject{
+    border:1px solid #ddd;
+    border-radius:10px;
+    padding:10px;
+    margin-top:15px;
+}
+
+input,
+textarea,
+select{
+    width:90%;
+    padding:8px;
+    margin-top:5px;
+    border-radius:8px;
+    border:1px solid #ccc;
+}
+
+textarea{
+    height:80px;
+}
+
+button{
+    margin-top:10px;
+    padding:10px 20px;
+    border:none;
+    border-radius:8px;
+    background:#4a6cf7;
+    color:white;
+    cursor:pointer;
+}
+
+.deleteBtn{
+    background:#ff5c5c;
+}
+
+#output{
+    text-align:left;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>📚 勉強管理アプリ</h1>
+
+<div class="box">
+    <h2 id="date"></h2>
+</div>
+
+<div class="box">
+    <h2 id="countdown"></h2>
+    <h3 id="streak"></h3>
+</div>
+
+<div class="box">
+    <h3>😴 睡眠時間</h3>
+    <input
+    type="number"
+    id="sleep"
+    step="0.5"
+    placeholder="睡眠時間(h)">
+</div>
+
+<div class="box">
+
+<h3>📚 科目別記録</h3>
+
+<div id="subjects"></div>
+
+<button onclick="addSubject()">
+＋ 科目追加
+</button>
+
+</div>
+
+<div class="box">
+
+<h3>⭐ 今日の達成度</h3>
+
+<select id="achievement">
+<option value="1">★</option>
+<option value="2">★★</option>
+<option value="3">★★★</option>
+<option value="4">★★★★</option>
+<option value="5">★★★★★</option>
+</select>
+
+</div>
+
+<div class="box">
+
+<h3>📋 明日やること</h3>
+
+<textarea id="tomorrow"></textarea>
+
+</div>
+
+<div class="box">
+
+<h3>🎯 目標勉強時間</h3>
+
+<input
+type="number"
+id="targetHours"
+placeholder="例：2500">
+
+<div id="examInfo"></div>
+
+</div>
+
+<button onclick="save()">
+💾 保存
+</button>
+
+<div class="box">
+
+<h2>今日の記録</h2>
+
+<div id="output"></div>
+
+</div>
+
+<script>
+  const today = new Date().toISOString().slice(0,10);
+
+document.getElementById("date").innerText = today;
+
+// 共通テスト日
+function getDaysUntilExam(){
+
+    const examDate = new Date("2027-01-16");
+
+    const now = new Date();
+
+    const diff =
+      examDate.getTime() -
+      now.getTime();
+
+    return Math.ceil(
+      diff / (1000*60*60*24)
+    );
+
+}
+
+// 連続勉強日数
+function getStreak(){
+
+    const studyDays =
+    JSON.parse(
+      localStorage.getItem("studyDays")
+    ) || [];
+
+    let streak = 0;
+
+    let current = new Date();
+
+    while(true){
+
+        const dateString =
+        current.toISOString().slice(0,10);
+
+        if(studyDays.includes(dateString)){
+
+            streak++;
+
+            current.setDate(
+              current.getDate()-1
+            );
+
+        }else{
+
+            break;
+
+        }
+
+    }
+
+    return streak;
+
+}
+
+document.getElementById("countdown").innerText =
+`🎯 共通テストまであと ${getDaysUntilExam()} 日`;
+
+document.getElementById("streak").innerText =
+`🔥 連続勉強日数 ${getStreak()} 日`;
+
+function addSubject(data={}){
+
+    const div =
+    document.createElement("div");
+
+    div.className = "subject";
+
+    div.innerHTML = `
+
+    <input
+    class="subjectName"
+    placeholder="科目名"
+    value="${data.name || ""}">
+
+    <br><br>
+
+    <input
+    class="subjectTime"
+    type="number"
+    step="0.5"
+    placeholder="勉強時間(h)"
+    value="${data.time || ""}">
+
+    <br><br>
+
+    <textarea
+    class="subjectNote"
+    placeholder="勉強内容">${data.note || ""}</textarea>
+
+    <br><br>
+
+    <select class="subjectLevel">
+      <option value="1">理解度★</option>
+      <option value="2">理解度★★</option>
+      <option value="3">理解度★★★</option>
+      <option value="4">理解度★★★★</option>
+      <option value="5">理解度★★★★★</option>
+    </select>
+
+    <br>
+
+    <button
+    class="deleteBtn"
+    onclick="this.parentElement.remove()">
+    削除
+    </button>
+
+    `;
+
+    document
+    .getElementById("subjects")
+    .appendChild(div);
+
+    if(data.level){
+
+        div.querySelector(
+        ".subjectLevel"
+        ).value = data.level;
+
+    }
+
+}
+
+// 累計勉強時間
+function getTotalStudyHours(){
+
+    let total = 0;
+
+    for(
+      let i=0;
+      i<localStorage.length;
+      i++
+    ){
+
+        const key =
+        localStorage.key(i);
+
+        if(
+        key.match(
+        /^\d{4}-\d{2}-\d{2}$/
+        )
+        ){
+
+            try{
+
+                const data =
+                JSON.parse(
+                localStorage.getItem(key)
+                );
+
+                if(data.subjects){
+
+                    data.subjects.forEach(s=>{
+
+                        total +=
+                        Number(s.time)||0;
+
+                    });
+
+                }
+
+            }catch{}
+
+        }
+
+    }
+
+    return total;
+
+}
+
+function updateExamInfo(){
+
+    const target =
+    Number(
+    document.getElementById(
+    "targetHours"
+    ).value
+    ) || 0;
+
+    const total =
+    getTotalStudyHours();
+
+    const days =
+    getDaysUntilExam();
+
+    const remain =
+    Math.max(
+    target-total,
+    0
+    );
+
+    const perDay =
+    days>0
+    ? (remain/days).toFixed(1)
+    : 0;
+
+    document.getElementById(
+    "examInfo"
+    ).innerHTML = `
+
+    <p>📚 累計勉強時間 ${total.toFixed(1)} h</p>
+
+    <p>🏁 目標 ${target} h</p>
+
+    <p>⏳ 残り ${remain.toFixed(1)} h</p>
+
+    <p>🔥 1日平均 ${perDay} h 必要</p>
+
+    `;
+
+}
+
+function save(){
+
+    const subjects=[];
+
+    let total=0;
+
+    document
+    .querySelectorAll(".subject")
+    .forEach(s=>{
+
+        const name =
+        s.querySelector(
+        ".subjectName"
+        ).value;
+
+        const time =
+        parseFloat(
+        s.querySelector(
+        ".subjectTime"
+        ).value
+        ) || 0;
+
+        const note =
+        s.querySelector(
+        ".subjectNote"
+        ).value;
+
+        const level =
+        s.querySelector(
+        ".subjectLevel"
+        ).value;
+
+        total += time;
+
+        subjects.push({
+
+            name,
+            time,
+            note,
+            level
+
+        });
+
+    });
+
+    const data={
+
+        sleep:
+        document.getElementById(
+        "sleep"
+        ).value,
+
+        achievement:
+        document.getElementById(
+        "achievement"
+        ).value,
+
+        tomorrow:
+        document.getElementById(
+        "tomorrow"
+        ).value,
+
+        targetHours:
+        document.getElementById(
+        "targetHours"
+        ).value,
+
+        subjects
+
+    };
+
+    localStorage.setItem(
+    today,
+    JSON.stringify(data)
+    );
+
+    let studyDays =
+    JSON.parse(
+    localStorage.getItem(
+    "studyDays"
+    )
+    ) || [];
+
+    if(
+    !studyDays.includes(today)
+    ){
+
+        studyDays.push(today);
+
+    }
+
+    localStorage.setItem(
+    "studyDays",
+    JSON.stringify(studyDays)
+    );
+
+    display(data,total);
+
+    updateExamInfo();
+
+    document.getElementById(
+    "streak"
+    ).innerText =
+    `🔥 連続勉強日数 ${getStreak()} 日`;
+
+}
+
+function display(data,total){
+
+    let html = `
+
+    <p><b>睡眠時間</b>
+    ${data.sleep}h</p>
+
+    <p><b>合計勉強時間</b>
+    ${total}h</p>
+
+    <p><b>達成度</b>
+    ${"★".repeat(data.achievement)}</p>
+
+    `;
+
+    data.subjects.forEach(s=>{
+
+        html += `
+
+        <hr>
+
+        <p><b>${s.name}</b></p>
+
+        <p>時間：
+        ${s.time}h</p>
+
+        <p>理解度：
+        ${"★".repeat(s.level)}</p>
+
+        <p>${s.note}</p>
+
+        `;
+
+    });
+
+    html += `
+
+    <hr>
+
+    <p><b>明日やること</b></p>
+
+    <p>${data.tomorrow}</p>
+
+    `;
+
+    document
+    .getElementById(
+    "output"
+    ).innerHTML = html;
+
+}
+
+// 読み込み
+const saved =
+JSON.parse(
+localStorage.getItem(today)
+);
+
+if(saved){
+
+    document.getElementById(
+    "sleep"
+    ).value =
+    saved.sleep || "";
+
+    document.getElementById(
+    "achievement"
+    ).value =
+    saved.achievement || 1;
+
+    document.getElementById(
+    "tomorrow"
+    ).value =
+    saved.tomorrow || "";
+
+    document.getElementById(
+    "targetHours"
+    ).value =
+    saved.targetHours || "";
+
+    saved.subjects.forEach(
+    addSubject
+    );
+
+    let total=0;
+
+    saved.subjects.forEach(
+    s=>total+=Number(s.time)
+    );
+
+    display(saved,total);
+
+}else{
+
+    addSubject();
+
+}
+
+updateExamInfo();
+
+</script>
+
+</body>
+</html>
