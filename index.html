@@ -3,25 +3,71 @@
 <head>
   <meta charset="UTF-8">
   <title>勉強日記</title>
+
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f5f7ff;
+      text-align: center;
+      padding: 30px;
+    }
+
+    textarea {
+      width: 80%;
+      height: 120px;
+      padding: 10px;
+      border-radius: 10px;
+    }
+
+    button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      border: none;
+      background: #4a6cf7;
+      color: white;
+      border-radius: 8px;
+    }
+
+    .box {
+      margin-top: 20px;
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      width: 80%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  </style>
 </head>
+
 <body>
   <h1>勉強日記</h1>
 
+  <p id="date"></p>
+
   <textarea id="note" placeholder="今日の勉強を書く"></textarea>
+  <br>
   <button onclick="save()">保存</button>
 
-  <h2>記録</h2>
-  <p id="output"></p>
+  <div class="box">
+    <h3>今日の記録</h3>
+    <p id="output"></p>
+  </div>
 
   <script>
+    // 今日の日付
+    let today = new Date().toISOString().slice(0, 10);
+    document.getElementById("date").innerText = today;
+
+    // 表示
+    document.getElementById("output").innerText =
+      localStorage.getItem(today) || "";
+
     function save() {
       let text = document.getElementById("note").value;
-      localStorage.setItem("study", text);
+      localStorage.setItem(today, text);
       document.getElementById("output").innerText = text;
     }
-
-    document.getElementById("output").innerText =
-      localStorage.getItem("study") || "";
   </script>
 </body>
 </html>
